@@ -26,7 +26,7 @@ static struct list ready_list;
 
 /* List of all processes.  Processes are added to this list
    when they are first scheduled and removed when they exit. */
-static struct list all_list;
+//static struct list all_list;
 
 /* Idle thread. */
 static struct thread *idle_thread;
@@ -302,6 +302,11 @@ void
 thread_yield (void) 
 {
   struct thread *cur = thread_current ();
+  #ifdef USERPROG  
+  /* Activate the new address space. */  
+  if (cur->pagedir == NULL)  
+    return;  
+  #endif  
   enum intr_level old_level;
   
   ASSERT (!intr_context ());
@@ -463,7 +468,13 @@ init_thread (struct thread *t, const char *name, int priority)
   t->stack = (uint8_t *) t + PGSIZE;
   t->priority = priority;
   t->magic = THREAD_MAGIC;
-
+  
+  #ifdef USERPROG
+  t->tcb=NULL;
+  t->current_file=NULL;
+  list_init(&t->child_tcb);
+  list_init(&t->fd);
+  #endif
   old_level = intr_disable ();
   list_push_back (&all_list, &t->allelem);
   intr_set_level (old_level);
