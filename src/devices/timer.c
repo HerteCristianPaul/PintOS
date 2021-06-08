@@ -21,7 +21,7 @@
 /* Number of timer ticks since OS booted. */
 static int64_t ticks;
 
-struct list sleep_list;                             // XXX
+struct list sleep_list;                             // We declare the sleep list for threads | XXX
 
 /* Number of loops per timer tick.
    Initialized by timer_calibrate(). */
@@ -38,9 +38,9 @@ static void real_time_delay (int64_t num, int32_t denom);
 void
 timer_init (void) 
 {
-  pit_configure_channel (0, 2, TIMER_FREQ);
-  intr_register_ext (0x20, timer_interrupt, "8254 Timer");
-  list_init (&sleep_list);                              // XXX
+  pit_configure_channel (0, 2, TIMER_FREQ);                                 // Channel 0 | Mode 2 | Sets up the timer to interrupt TIMER_FREQ times/second
+  intr_register_ext (0x20, timer_interrupt, "8254 Timer");                  // Registers interrupt handler | c->irq, interrupt_handler, c->name
+  list_init (&sleep_list);                                                  // Initialization of sleep list | XXX
 }
 
 /* Calibrates loops_per_tick, used to implement brief delays. */
@@ -89,30 +89,30 @@ timer_elapsed (int64_t then)
 }
 
 /* Sleeps for approximately TICKS timer ticks.  Interrupts must
-   be turned on. */
+   be turned on. */     //  XXX
 void
 timer_sleep (int64_t ticks) 
 {
   //int64_t start = timer_ticks ();
 
-  struct thread* curthread;
-  enum intr_level curlevel;
+  struct thread* curthread;                         // Declare the variable curthread as a type of thread*
+  enum intr_level curlevel;                         // Declare the variable curlevel
 
-  ASSERT (intr_get_level () == INTR_ON);
+  ASSERT (intr_get_level () == INTR_ON);            // For diagnostic intel
   /*while (timer_elapsed (start) < ticks)
     thread_yield ();*/
 
-  curlevel = intr_disable();
+  curlevel = intr_disable();                        // Disables interrupts and returns the previous interrupt status.
 
-  curthread = thread_current();
+  curthread = thread_current();                     // Returns the running thread
 
-  curthread->waketick = timer_ticks() + ticks;
+  curthread->waketick = timer_ticks() + ticks;              // Assigning value to waketick variable of curthread using arrow operator = Returns the number of timer ticks since the OS booted + ticks
 
-  list_insert_ordered (&sleep_list, &curthread->elem, cmp_waketick, NULL);
+  list_insert_ordered (&sleep_list, &curthread->elem, cmp_waketick, NULL);          // Inserts curthread in the proper position in sleep_list, which must be sorted according to cmp_waketick given auxiliary data NULL.
 
-  thread_block();
+  thread_block();                                 // Puts the current thread to sleep.  It will not be scheduled again until awoken by thread_unblock()
 
-  intr_set_level(curlevel);
+  intr_set_level(curlevel);                     // Enables or disables interrupts as specified by curlevel and returns the previous interrupt status.
 }
 
 /* Sleeps for approximately MS milliseconds.  Interrupts must be
@@ -189,16 +189,16 @@ timer_print_stats (void)
 static void
 timer_interrupt (struct intr_frame *args UNUSED)
 {
-  struct list_elem *head;
-  struct thread *hthread;
+  struct list_elem *head;                       // Declare the variable head as a type of head
+  struct thread *hthread;                       // Declare the variable hthread as a type of thread
 
-  ticks++;
-  thread_tick ();
+  ticks++;                                     // Variable incrementation
+  thread_tick ();                                  // Called by the timer interrupt handler at each timer tick
 
-  while(!list_empty(&sleep_list))
+  while(!list_empty(&sleep_list))                            // While sleep list is not empty
   {
-    head = list_front(&sleep_list);
-    hthread = list_entry (head, struct thread, elem);
+    head = list_front(&sleep_list);                           // head = Returns the front element in sleep list
+    hthread = list_entry (head, struct thread, elem);           // htread =
 
     if(hthread->waketick > ticks )
       break;
